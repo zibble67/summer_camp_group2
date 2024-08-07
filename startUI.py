@@ -296,7 +296,7 @@ elif st.session_state.page == "result":
         if st.button("수정하기"):
             with st.spinner('블로그 글 수정중...'):
                 refined_content = refine_blog(st.session_state.blog_content, additional_prompt)
-                st.session_state['blog_content'] = refined_content
+                st.session_state.blog_content = refined_content
     with col4:
         if st.button("뒤로 가기"):
             st.session_state.page = "home"
