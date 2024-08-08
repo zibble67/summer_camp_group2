@@ -11,12 +11,11 @@ from datasets import load_dataset
 from llama_index.core import Document
 from llama_index.core import VectorStoreIndex
 from llama_index.core.settings import Settings
-from llama_index.llms.openai import OpenAI
+from llama_index.llms.openai import OpenAI as llOpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
 import nest_asyncio
 import pandas as pd
 from openai import OpenAI
-from openai import AsyncOpenAI
 
 openai_api_key = ""
 client = OpenAI(api_key=openai_api_key)
@@ -26,7 +25,7 @@ st.title("블로그 게시글 생성기")
 
 ################### 변수 초기화 & 상수 정의 ########################
 # 1분 이내와 근접한 위치를 정의하는 상수
-TIME_THRESHOLD = timedelta(minutes=30)
+TIME_THRESHOLD = timedelta(minutes=120)
 DISTANCE_THRESHOLD = 100  # 거리 임계값 (단위: km, 여기서는 100m)
 
 if "page" not in st.session_state:  # 웹 페이지 태그
@@ -45,13 +44,13 @@ if "group_info" not in st.session_state:    # 사진 그룹 정보
     st.session_state.group_info = []
 
 ################## 필요한 함수 정의 #####################
-def generate_blog(prompt, photo):      # 블로그 글 작성 함수
+def generate_blog(prev_content, prompt, photo):      # 블로그 글 작성 함수
     filtered_dict = {k: v for k, v in photo.items() if k != 'img_base64'}
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": prompt},
+            {"role": "system", "content": f"{prompt}, {prev_content} (Refer to the prev_content, but avoid writing overlapping with this content)"},
             {"role": "user", "content":[
                     {
                     "type": "image_url",
@@ -190,9 +189,6 @@ if st.session_state.page == "home":
     )
     st.session_state.Type = Type
 
-    if "temp" not in st.session_state:  # 웹 페이지 태그
-        st.session_state.temp = []
-
     if Type in ["일상 기록", "제품 소개", "칼럼"]:
         uploaded_files = st.file_uploader("이미지를 업로드하세요", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
         
@@ -271,7 +267,7 @@ if st.session_state.page == "home":
             model="text-embedding-3-small"
         )
 
-        Settings.llm=OpenAI(model='gpt-3.5-turbo',temperature=0)
+        Settings.llm=llOpenAI(model='gpt-3.5-turbo',temperature=0)
 
         # CSV 파일 로드
         df = pd.read_csv("C:/Users/pizzazoa/Downloads/separated_travel_data.csv")
@@ -289,7 +285,7 @@ if st.session_state.page == "home":
             model="text-embedding-3-small"
         )
 
-        Settings.llm = OpenAI(model='gpt-4o-mini', temperature=0)
+        Settings.llm = llOpenAI(model='gpt-4o-mini', temperature=0)
 
         # 벡터스토어 인덱스 설정
         vector_index = VectorStoreIndex.from_documents(
@@ -363,9 +359,11 @@ elif st.session_state.page == "result":
         
         with st.spinner('블로그 글 생성중...'):
             for group in st.session_state.group_info:
+                prev_content = ''
                 for photo in group:
-                    blog_content = generate_blog(prompt, photo)
+                    blog_content = generate_blog(prev_content, prompt, photo)
                     st.session_state.blog_content.append({'content': blog_content, 'image': photo['image']})
+                    prev_content = blog_content
     
     st.session_state['generated'] = True
 
