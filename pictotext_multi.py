@@ -19,7 +19,7 @@ from openai import OpenAI
 from openai import AsyncOpenAI
 
 openai_api_key = ""
-client = AsyncOpenAI(api_key=openai_api_key)
+client = OpenAI(api_key=openai_api_key)
 
 # Streamlit UI
 st.title("블로그 게시글 생성기")
@@ -190,6 +190,9 @@ if st.session_state.page == "home":
     )
     st.session_state.Type = Type
 
+    if "temp" not in st.session_state:  # 웹 페이지 태그
+        st.session_state.temp = []
+
     if Type in ["일상 기록", "제품 소개", "칼럼"]:
         uploaded_files = st.file_uploader("이미지를 업로드하세요", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
         
@@ -336,7 +339,7 @@ elif st.session_state.page == "result":
         # 추가명령
         - 사진이 어떤 사진인지 파악하여 그에 알맞는 글을 생성해낸다.
         (만약 음식 사진이라면, {st.session_state.info["mood"]}를 참고하여 음식의 맛에 대한 평가가 담긴 글이어야함)
-        - 마지막에 p.s. 하며 간단한 한마디를 추가하기
+        - 마지막에 간단한 한마디를 추가하기
 
         # 예시1
         확실히 일본여행은 드럭스토어 털어오는 재미를 빼놓고는 얘기가 안되죠..! 이번에 접이식 폴딩백 하나 챙겨간거 가득 쇼핑템으로 담아왔는데요.
@@ -362,14 +365,15 @@ elif st.session_state.page == "result":
             for group in st.session_state.group_info:
                 for photo in group:
                     blog_content = generate_blog(prompt, photo)
-                    st.session_state.blog_content.append(blog_content)
+                    st.session_state.blog_content.append({'content': blog_content, 'image': photo['image']})
     
     st.session_state['generated'] = True
 
     # 생성 완료 시
     if st.session_state.get('generated'):
         for content in st.session_state.blog_content:
-            st.write(content)
+            st.image(content['image'])
+            st.write(content['content'])
 
         # 클립보드로 복사 기능 추가
         if st.button("복사"):
@@ -378,7 +382,7 @@ elif st.session_state.page == "result":
             st.write("클립보드로 복사되었습니다.")
 
     # 추가 수정 프롬프팅
-    additional_prompt = st.text_area("수정을 원한다면 추가 정보를 입력하세요.")
+    additional_prompt = st.text_area("수정을 원한다면 추가 정보를 입력하세요.", key = )
 
     # 버튼 위치 조정
     col1, col2, col3, col4 = st.columns([1, 2, 2, 1])  # Adjust column ratios as needed
@@ -386,9 +390,13 @@ elif st.session_state.page == "result":
     with col1:
         if st.button("수정하기"):
             with st.spinner('블로그 글 수정중...'):
-                refined_content = refine_blog(st.session_state.blog_content, additional_prompt)
-                st.session_state.blog_content = refined_content
+                st.session_state.refined_content = []
+                for content in st.session_state.blog_content:
+                    refined_content = refine_blog(content['content'], additional_prompt)
+                    st.session_state.refined_content.append({'content': refined_content, 'image': content['image']})
+                st.session_state.blog_content = st.session_state.refined_content
                 st.session_state['refine'] = True
+                additional_prompt = None
                 st.rerun()  # Immediately rerun the script
     with col4:
         if st.button("뒤로 가기"):
