@@ -382,7 +382,7 @@ elif st.session_state.page == "result":
             st.write("클립보드로 복사되었습니다.")
 
     # 추가 수정 프롬프팅
-    additional_prompt = st.text_area("수정을 원한다면 추가 정보를 입력하세요.", key = 'add_prompt')
+    additional_prompt = st.text_area("수정을 원한다면 추가 정보를 입력하세요.")
 
     # 버튼 위치 조정
     col1, col2, col3, col4 = st.columns([1, 2, 2, 1])  # Adjust column ratios as needed
@@ -396,7 +396,6 @@ elif st.session_state.page == "result":
                     st.session_state.refined_content.append({'content': refined_content, 'image': content['image']})
                 st.session_state.blog_content = st.session_state.refined_content
                 st.session_state['refine'] = True
-                st.session_state.add_prompt = ""
                 st.rerun()  # Immediately rerun the script
     with col4:
         if st.button("뒤로 가기"):
