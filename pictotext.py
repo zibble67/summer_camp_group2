@@ -50,7 +50,7 @@ def generate_blog(prev_content, prompt, photo):      # 블로그 글 작성 함�
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": f"{prompt}, {prev_content} (Refer to the prev_content, but avoid writing overlapping with this content)"},
+            {"role": "system", "content": f"{prompt}, {prev_content} (Refer to the prev_content, but avoid writing overlapping with this content and please write it so that it connects with the prev_content)"},
             {"role": "user", "content":[
                     {
                     "type": "image_url",
@@ -192,6 +192,11 @@ if st.session_state.page == "home":
     if Type in ["일상 기록", "제품 소개", "칼럼"]:
         uploaded_files = st.file_uploader("이미지를 업로드하세요", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
         
+        if st.button("생성"):
+            st.session_state.page = "result"
+            st.session_state['refine'] = False
+            st.rerun()  # Immediately rerun the script
+
         if Type == "일상 기록":
             mood = st.selectbox("Mood", ["활기찬", "우울한", "무던한"])
             st.session_state.info['mood'] = mood
@@ -251,11 +256,6 @@ if st.session_state.page == "home":
                 st.session_state.group_info.append(group)
                 st.write("---")  # 구분선 추가
 
-
-        if st.button("생성"):
-            st.session_state.page = "result"
-            st.session_state['refine'] = False
-            st.rerun()  # Immediately rerun the script
 
     elif Type == "검색":
         ################## llamaindex 세팅 #######################
